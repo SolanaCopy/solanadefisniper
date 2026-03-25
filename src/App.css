@@ -1,0 +1,328 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0a0f;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+}
+
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #1a1a2e;
+}
+
+.header h1 {
+  font-size: 1.5rem;
+  color: #9945ff;
+}
+
+.status-badge {
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-badge.online {
+  background: #14f19533;
+  color: #14f195;
+}
+
+.status-badge.offline {
+  background: #ff454533;
+  color: #ff4545;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.card {
+  background: #12121f;
+  border: 1px solid #1a1a2e;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.card.wide {
+  grid-column: 1 / -1;
+}
+
+.card h2 {
+  font-size: 1rem;
+  color: #9945ff;
+  margin-bottom: 12px;
+}
+
+.mono {
+  font-family: "Fira Code", "Cascadia Code", monospace;
+  font-size: 0.8rem;
+  color: #888;
+  word-break: break-all;
+}
+
+.balance {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #14f195;
+  margin: 8px 0;
+}
+
+.sub {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.error {
+  color: #ff4545;
+}
+
+/* Settings */
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #1a1a2e;
+}
+
+.setting-row:last-child {
+  border-bottom: none;
+}
+
+.setting-row label {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.setting-row input {
+  width: 100px;
+  background: #0a0a0f;
+  border: 1px solid #2a2a3e;
+  color: #e0e0e0;
+  padding: 6px 10px;
+  border-radius: 6px;
+  text-align: right;
+  font-size: 0.9rem;
+}
+
+.toggle {
+  padding: 6px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.toggle.on {
+  background: #14f195;
+  color: #000;
+}
+
+.toggle.off {
+  background: #2a2a3e;
+  color: #888;
+}
+
+/* Manual Buy */
+.manual-buy {
+  display: flex;
+  gap: 8px;
+}
+
+.manual-buy input {
+  flex: 1;
+  background: #0a0a0f;
+  border: 1px solid #2a2a3e;
+  color: #e0e0e0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+
+.manual-buy button {
+  background: #9945ff;
+  color: #fff;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.manual-buy button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Tables */
+.table-container {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #2a2a3e;
+  color: #666;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #1a1a2e;
+  font-size: 0.85rem;
+}
+
+.empty {
+  text-align: center;
+  color: #444;
+  padding: 30px !important;
+}
+
+.msg-cell {
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #888;
+}
+
+.btn-small {
+  background: #9945ff;
+  color: #fff;
+  border: none;
+  padding: 4px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.btn-small:disabled {
+  opacity: 0.5;
+}
+
+/* Trade status badges */
+.badge {
+  padding: 3px 10px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge.pending {
+  background: #f0b90b33;
+  color: #f0b90b;
+}
+
+.badge.success {
+  background: #14f19533;
+  color: #14f195;
+}
+
+.badge.failed {
+  background: #ff454533;
+  color: #ff4545;
+}
+
+.tx-link {
+  color: #9945ff;
+  text-decoration: none;
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+.tx-link:hover {
+  text-decoration: underline;
+}
+
+/* Header */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.strategy-badge {
+  background: #9945ff33;
+  color: #9945ff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Caller tags */
+.caller-tag {
+  background: #1a1a2e;
+  color: #9945ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-right: 4px;
+  display: inline-block;
+  margin-bottom: 2px;
+}
+
+.callers-cell {
+  max-width: 250px;
+}
+
+/* Caller count */
+.caller-count {
+  font-weight: 700;
+  color: #f0b90b;
+  font-size: 0.9rem;
+}
+
+.caller-count.ready {
+  color: #14f195;
+}
+
+/* Profit/Loss colors */
+.profit-up {
+  color: #14f195;
+  font-weight: 700;
+}
+
+.profit-neutral {
+  color: #f0b90b;
+  font-weight: 600;
+}
+
+.profit-down {
+  color: #ff4545;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}
