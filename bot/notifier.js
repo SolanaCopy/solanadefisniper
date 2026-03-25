@@ -6,6 +6,10 @@ const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
+// Debug: log config at startup
+console.log(`[Notifier] BOT_TOKEN: ${BOT_TOKEN ? BOT_TOKEN.slice(0, 8) + "..." : "NOT SET"}`);
+console.log(`[Notifier] CHAT_ID: ${CHAT_ID || "NOT SET"}`);
+
 // Cache token names
 const tokenNameCache = new Map();
 
@@ -30,10 +34,13 @@ function isEnabled() {
 }
 
 async function sendMessage(text) {
-  if (!isEnabled()) return;
+  if (!isEnabled()) {
+    console.warn("[Notifier] Skipping — not enabled (missing BOT_TOKEN or CHAT_ID)");
+    return;
+  }
 
   try {
-    await fetch(`${TELEGRAM_API}/sendMessage`, {
+    const res = await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -43,6 +50,11 @@ async function sendMessage(text) {
         disable_web_page_preview: true,
       }),
     });
+
+    const data = await res.json();
+    if (!data.ok) {
+      console.error(`[Notifier] Telegram API error: ${data.error_code} — ${data.description}`);
+    }
   } catch (err) {
     console.error(`[Notifier] Failed to send: ${err.message}`);
   }
@@ -117,10 +129,11 @@ async function notifySell(data) {
   if (data.reason === "take_profit") {
     const profit = data.pnl.toFixed(4);
     await sendMessage(
+      `💰💰💰 TAKE PROFIT 💰💰💰\n` +
       `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `💰 <b>TAKE PROFIT HIT</b>\n` +
+      `🚀 <b>TAKE PROFIT HIT</b> 🚀\n` +
       `━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `🚀 Position closed in profit!\n\n` +
+      `🎉 Position closed in profit!\n\n` +
       `├ Token: <b>${name}</b>\n` +
       `├ Multiplier: <b>${data.multiplier.toFixed(2)}x</b>\n` +
       `├ SOL Out: <b>${data.solReceived.toFixed(4)} SOL</b>\n` +

@@ -6,6 +6,7 @@ const config = require("./config");
 
 let client = null;
 let channelEntity = null;
+let isConnected = false;
 
 /**
  * Initialize the Telegram client with existing session
@@ -14,7 +15,9 @@ async function initClient() {
   const session = new StringSession(config.telegram.session);
 
   client = new TelegramClient(session, config.telegram.apiId, config.telegram.apiHash, {
-    connectionRetries: 5,
+    connectionRetries: 10,
+    retryDelay: 3000,
+    autoReconnect: true,
   });
 
   await client.start({
@@ -30,6 +33,7 @@ async function initClient() {
     onError: (err) => console.error("[Telegram] Error:", err),
   });
 
+  isConnected = true;
   console.log("[Telegram] Connected with existing session");
 
   // Resolve the target channel
@@ -46,6 +50,32 @@ async function initClient() {
       console.error(`[Telegram] Failed: ${err2.message}`);
     }
   }
+
+  // Health check: verify connection every 60s and reconnect if needed
+  setInterval(async () => {
+    try {
+      const connected = client.connected;
+      if (!connected) {
+        console.warn("[Telegram] Connection lost! Reconnecting...");
+        isConnected = false;
+        await client.connect();
+        isConnected = true;
+        console.log("[Telegram] Reconnected successfully");
+      }
+    } catch (err) {
+      console.error("[Telegram] Reconnect failed:", err.message);
+      isConnected = false;
+      // Try full reconnect
+      try {
+        await client.disconnect();
+        await client.connect();
+        isConnected = true;
+        console.log("[Telegram] Full reconnect successful");
+      } catch (err2) {
+        console.error("[Telegram] Full reconnect also failed:", err2.message);
+      }
+    }
+  }, 60000);
 
   return client;
 }
@@ -80,15 +110,19 @@ function onChannelMessage(callback) {
           for (const row of message.replyMarkup.rows) {
             for (const button of row.buttons) {
               if (button.url) {
+                console.log(`[Telegram] Button URL: ${button.url}`);
                 fullText += " " + button.url;
               }
             }
           }
+        } else {
+          console.log(`[Telegram] No replyMarkup on event message`);
         }
 
         if (message.entities) {
           for (const entity of message.entities) {
             if (entity.url) {
+              console.log(`[Telegram] Entity URL: ${entity.url}`);
               fullText += " " + entity.url;
             }
           }
@@ -109,6 +143,7 @@ function onChannelMessage(callback) {
   // Method 2: Poll the channel every 5 seconds as fallback
   if (channelEntity) {
     let lastMessageId = 0;
+    let consecutiveErrors = 0;
 
     // Get the latest message ID first
     client.getMessages(channelEntity, { limit: 1 }).then((msgs) => {
@@ -122,10 +157,17 @@ function onChannelMessage(callback) {
 
     setInterval(async () => {
       try {
+        if (!isConnected) {
+          console.log("[Telegram] Poll skipped — not connected");
+          return;
+        }
+
         const messages = await client.getMessages(channelEntity, {
           limit: 5,
           minId: lastMessageId,
         });
+
+        consecutiveErrors = 0; // Reset on success
 
         for (const msg of messages.reverse()) {
           if (msg.id <= lastMessageId) continue;
@@ -143,16 +185,20 @@ function onChannelMessage(callback) {
             for (const row of msg.replyMarkup.rows) {
               for (const button of row.buttons) {
                 if (button.url) {
+                  console.log(`[Telegram] Poll button URL: ${button.url}`);
                   fullText += " " + button.url;
                 }
               }
             }
+          } else {
+            console.log(`[Telegram] Poll: no replyMarkup on message #${msg.id}`);
           }
 
           // Get URLs from message entities (text links)
           if (msg.entities) {
             for (const entity of msg.entities) {
               if (entity.url) {
+                console.log(`[Telegram] Poll entity URL: ${entity.url}`);
                 fullText += " " + entity.url;
               }
             }
@@ -166,11 +212,27 @@ function onChannelMessage(callback) {
           });
         }
       } catch (err) {
-        console.error("[Telegram] Poll error:", err.message);
+        consecutiveErrors++;
+        console.error(`[Telegram] Poll error (${consecutiveErrors}x): ${err.message}`);
+
+        // After 5 consecutive errors, try to reconnect
+        if (consecutiveErrors >= 5) {
+          console.warn("[Telegram] Too many poll errors, forcing reconnect...");
+          try {
+            await client.connect();
+            isConnected = true;
+            consecutiveErrors = 0;
+            console.log("[Telegram] Reconnected after poll errors");
+          } catch (reconnectErr) {
+            console.error("[Telegram] Reconnect failed:", reconnectErr.message);
+          }
+        }
       }
     }, POLL_INTERVAL);
 
     console.log(`[Telegram] Polling ${channelEntity.title} every ${POLL_INTERVAL / 1000}s`);
+  } else {
+    console.error("[Telegram] WARNING: channelEntity is null — polling disabled! Check TELEGRAM_CHANNEL env var.");
   }
 
   console.log(`[Telegram] Listening for messages in: ${config.telegram.channel}`);

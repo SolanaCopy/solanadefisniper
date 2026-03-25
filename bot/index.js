@@ -252,7 +252,12 @@ async function main() {
   // Listen for channel messages
   onChannelMessage(async (msg) => {
     console.log(`\n[Telegram] New message from ${msg.chatName}:`);
-    console.log(`  ${msg.text.substring(0, 120)}${msg.text.length > 120 ? "..." : ""}`);
+    console.log(`  ${msg.text.substring(0, 200)}${msg.text.length > 200 ? "..." : ""}`);
+
+    // Debug: show if URLs were found in the message
+    const hasSpyDefiLink = /t\.me\/spydefi_bot/.test(msg.text);
+    const hasSolanaAddr = /[1-9A-HJ-NP-Za-km-z]{32,44}/.test(msg.text);
+    console.log(`  [Debug] Length: ${msg.text.length} | SpyDeFi link: ${hasSpyDefiLink} | Solana addr: ${hasSolanaAddr}`);
 
     const parsed = parseCallMessage(msg.text);
     if (!parsed) {
