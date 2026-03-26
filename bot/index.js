@@ -144,13 +144,19 @@ async function executeBuy(tokenAddress, trigger) {
 
   console.log(`\n[Bot] Buying token: ${tokenAddress} (trigger: ${trigger} | ${mcapCheck.reason})`);
 
+  const dex = mcapCheck.dexData;
   const trade = {
     id: trades.length + 1,
     tokenAddress,
+    symbol: dex?.symbol || null,
+    name: dex?.name || null,
     amount: config.trading.buyAmountSol,
     trigger,
     status: "pending",
     timestamp: Date.now(),
+    buyMcap: mcapCheck.marketCap || null,
+    buyPriceUsd: dex?.priceUsd || null,
+    buyLiquidityUsd: dex?.liquidity || null,
   };
 
   trades.push(trade);

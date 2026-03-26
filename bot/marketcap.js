@@ -21,6 +21,8 @@ async function getMarketCap(tokenMint) {
       liquidity: pair.liquidity?.usd || null,
       pairAddress: pair.pairAddress,
       dexId: pair.dexId,
+      symbol: pair.baseToken?.symbol || null,
+      name: pair.baseToken?.name || null,
     };
   } catch (err) {
     console.error(`[MarketCap] Error fetching ${tokenMint}: ${err.message}`);
@@ -33,18 +35,18 @@ async function checkMarketCap(tokenMint) {
 
   if (!data || data.marketCap === null) {
     console.log(`[MarketCap] ${tokenMint.slice(0, 8)}... could not fetch mcap, allowing buy`);
-    return { allowed: true, marketCap: null, reason: "mcap unknown" };
+    return { allowed: true, marketCap: null, reason: "mcap unknown", dexData: data };
   }
 
   const mcapK = (data.marketCap / 1000).toFixed(0);
 
   if (data.marketCap > MAX_MCAP) {
     console.log(`[MarketCap] ${tokenMint.slice(0, 8)}... mcap $${mcapK}K > $${MAX_MCAP / 1000}K — SKIP`);
-    return { allowed: false, marketCap: data.marketCap, reason: `mcap $${mcapK}K too high` };
+    return { allowed: false, marketCap: data.marketCap, reason: `mcap $${mcapK}K too high`, dexData: data };
   }
 
   console.log(`[MarketCap] ${tokenMint.slice(0, 8)}... mcap $${mcapK}K — OK`);
-  return { allowed: true, marketCap: data.marketCap, reason: `mcap $${mcapK}K` };
+  return { allowed: true, marketCap: data.marketCap, reason: `mcap $${mcapK}K`, dexData: data };
 }
 
 module.exports = { getMarketCap, checkMarketCap, MAX_MCAP };
