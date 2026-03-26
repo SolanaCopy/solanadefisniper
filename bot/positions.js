@@ -14,6 +14,7 @@ async function getAllTokenAccounts() {
 }
 const { executeSell, getTokenValueInSol } = require("./jupiter");
 const notifier = require("./notifier");
+const { recordTradeResult } = require("./callerStats");
 
 // Active positions: tokenMint -> position data
 const positions = new Map();
@@ -38,7 +39,7 @@ function setSocketIO(socketIO) {
 /**
  * Add a new position after a successful buy
  */
-async function addPosition(tokenMint, buyAmountSol, tokenAmount) {
+async function addPosition(tokenMint, buyAmountSol, tokenAmount, callers) {
   // Fetch token name from DexScreener
   let tokenName = null;
   try {
@@ -56,6 +57,7 @@ async function addPosition(tokenMint, buyAmountSol, tokenAmount) {
     tokenName: tokenName || tokenMint.slice(0, 8) + "...",
     buyAmountSol,
     tokenAmount: BigInt(tokenAmount),
+    callers: callers || [],
     buyTime: Date.now(),
     closed: false,
     closeReason: null,
@@ -108,6 +110,11 @@ async function sellPosition(tokenMint, position, currentBalance, reason) {
   }
 
   await notifier.notifySell(sellData);
+
+  // Update caller winrate stats
+  if (position.callers && position.callers.length > 0) {
+    recordTradeResult(position.callers, tokenMint, pnl, position.multiplier, position.tokenName);
+  }
 }
 
 /**
@@ -255,12 +262,18 @@ async function restorePositions(storage) {
       if (positions.has(mint)) continue;
       if (!boughtTokens.has(mint)) continue;
 
-      // Find the original trade to get buy amount
+      // Find the original trade to get buy amount and callers
       const trades = storage.loadTrades();
       const trade = trades.find((t) => t.tokenAddress === mint && t.status === "success");
       const buyAmount = trade ? trade.amount : 0.1; // fallback
+      // Extract callers from trigger string like "auto (caller1, caller2)"
+      let callers = [];
+      if (trade && trade.trigger) {
+        const match = trade.trigger.match(/\(([^)]+)\)/);
+        if (match) callers = match[1].split(",").map((c) => c.trim());
+      }
 
-      addPosition(mint, buyAmount, amount);
+      addPosition(mint, buyAmount, amount, callers);
       restored++;
     }
 

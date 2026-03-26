@@ -24,6 +24,7 @@ const notifier = require("./notifier");
 const storage = require("./storage");
 const { checkMarketCap, MAX_MCAP } = require("./marketcap");
 const { getPortfolio } = require("./portfolio");
+const { checkCallers, getFormattedStats } = require("./callerStats");
 
 // Express + Socket.IO setup
 const app = express();
@@ -112,7 +113,7 @@ app.post("/api/buy", async (req, res) => {
 
 // ──────────── Buy Logic ────────────
 
-async function executeBuy(tokenAddress, trigger) {
+async function executeBuy(tokenAddress, trigger, callers) {
   // Duplicate protection: don't buy same token twice
   if (storage.hasAlreadyBought(tokenAddress)) {
     console.log(`[Bot] Skipping ${tokenAddress} — already bought before`);
@@ -166,7 +167,7 @@ async function executeBuy(tokenAddress, trigger) {
     storage.saveTrades(trades);
 
     // Track position for auto-sell
-    addPosition(tokenAddress, config.trading.buyAmountSol, result.outputAmount);
+    addPosition(tokenAddress, config.trading.buyAmountSol, result.outputAmount, callers);
   } catch (err) {
     trade.status = "failed";
     trade.error = err.message;
@@ -301,11 +302,26 @@ async function main() {
     console.log(`  -> ${result.reason}`);
 
     if (result.shouldBuy) {
+      // Check caller winrate filter
+      const callerCheck = checkCallers(result.callers);
+      if (!callerCheck.allowed) {
+        const blocked = callerCheck.blocked.map((b) => `@${b.caller} (${b.reason})`).join(", ");
+        console.log(`  -> Blocked by caller filter: ${blocked}`);
+        await notifier.sendMessage(
+          `━━━━━━━━━━━━━━━━━━━━━\n` +
+          `⛔ <b>CALLER FILTER</b>\n` +
+          `━━━━━━━━━━━━━━━━━━━━━\n\n` +
+          `All callers have bad winrate:\n${blocked}\n\n` +
+          `Token: <code>${parsed.tokenAddress}</code>`
+        );
+        return;
+      }
+
       await notifier.notifyThresholdReached(parsed.tokenAddress, result.callers);
 
       if (config.trading.autoBuy) {
         console.log(`  -> ${MIN_CALLERS} callers reached! Buying...`);
-        await executeBuy(parsed.tokenAddress, `auto (${result.callers.join(", ")})`);
+        await executeBuy(parsed.tokenAddress, `auto (${result.callers.join(", ")})`, result.callers);
       } else {
         console.log(`  -> ${MIN_CALLERS} callers reached! Auto-buy is OFF, use dashboard to buy.`);
       }

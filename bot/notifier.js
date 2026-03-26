@@ -472,6 +472,18 @@ function startCommandListener(getPositionsFn, getBalanceFn, getStatsFn, sellFn, 
           }
         }
 
+        // /callers — show caller winrate stats
+        if (cmd === "/callers") {
+          const { getFormattedStats } = require("./callerStats");
+          const stats = getFormattedStats();
+          await sendMessage(
+            `━━━━━━━━━━━━━━━━━━━━━\n` +
+            `📊 <b>CALLER WINRATES</b>\n` +
+            `━━━━━━━━━━━━━━━━━━━━━\n\n` +
+            stats
+          );
+        }
+
         // /help — show available commands
         if (cmd === "/help") {
           await sendMessage(
@@ -485,6 +497,7 @@ function startCommandListener(getPositionsFn, getBalanceFn, getStatsFn, sellFn, 
             `/winrate all — All time\n` +
             `/balance — Wallet balance\n` +
             `/stats — Bot statistics\n` +
+            `/callers — Caller winrates\n` +
             `/sell <address> — Sell 1 token\n` +
             `/sellall — Sell all positions\n` +
             `/help — This menu`
