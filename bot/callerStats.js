@@ -121,15 +121,55 @@ function getFormattedStats() {
 
   if (entries.length === 0) return "No caller data yet.";
 
-  // Sort by total trades descending
-  entries.sort((a, b) => (b[1].wins + b[1].losses) - (a[1].wins + a[1].losses));
+  // Sort by total PnL descending (best earners first)
+  entries.sort((a, b) => b[1].totalPnl - a[1].totalPnl);
 
   let msg = "";
+
+  // Top 3 best callers
+  const withTrades = entries.filter(([, s]) => s.wins + s.losses > 0);
+  if (withTrades.length > 0) {
+    const medals = ["🥇", "🥈", "🥉"];
+    msg += `<b>TOP CALLERS (by profit)</b>\n`;
+    for (let i = 0; i < Math.min(3, withTrades.length); i++) {
+      const [name, s] = withTrades[i];
+      if (s.totalPnl <= 0 && i > 0) break;
+      const total = s.wins + s.losses;
+      const winrate = ((s.wins / total) * 100).toFixed(0);
+      msg += `${medals[i] || ""} <b>@${name}</b> — ${s.totalPnl >= 0 ? "+" : ""}${s.totalPnl.toFixed(4)} SOL (${winrate}% WR)\n`;
+    }
+    msg += `\n`;
+
+    // Top 3 by winrate (min 2 trades)
+    const byWinrate = withTrades
+      .filter(([, s]) => s.wins + s.losses >= 2)
+      .sort((a, b) => {
+        const wrA = a[1].wins / (a[1].wins + a[1].losses);
+        const wrB = b[1].wins / (b[1].wins + b[1].losses);
+        return wrB - wrA;
+      });
+
+    if (byWinrate.length > 0) {
+      msg += `<b>BEST WINRATE (min 2 trades)</b>\n`;
+      for (let i = 0; i < Math.min(3, byWinrate.length); i++) {
+        const [name, s] = byWinrate[i];
+        const total = s.wins + s.losses;
+        const winrate = ((s.wins / total) * 100).toFixed(0);
+        if (s.wins === 0 && i > 0) break;
+        msg += `${medals[i] || ""} <b>@${name}</b> — ${winrate}% (${s.wins}W/${s.losses}L)\n`;
+      }
+      msg += `\n`;
+    }
+
+    msg += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  }
+
+  // Full list
   for (const [name, s] of entries) {
     const total = s.wins + s.losses;
     const winrate = total > 0 ? ((s.wins / total) * 100).toFixed(0) : 0;
     const pnlSign = s.totalPnl >= 0 ? "+" : "";
-    const bar = total > 0 ? "🟢".repeat(s.wins) + "🔴".repeat(s.losses) : "";
+    const bar = total > 0 ? "🟢".repeat(Math.min(s.wins, 10)) + "🔴".repeat(Math.min(s.losses, 10)) : "";
     const trusted = isCallerTrusted(name);
 
     msg += `<b>@${name}</b> ${trusted.trusted ? "✅" : "⛔"}\n`;
@@ -140,12 +180,30 @@ function getFormattedStats() {
   return msg;
 }
 
+/**
+ * Get a short caller reputation line for use in buy notifications.
+ * e.g. "@caller1 (60% WR, +0.3 SOL) | @caller2 (new)"
+ */
+function getCallerReputation(callers) {
+  const stats = loadStats();
+  return callers.map((c) => {
+    const name = c.toLowerCase().trim();
+    const s = stats[name];
+    if (!s || s.wins + s.losses === 0) return `@${c} (new)`;
+    const total = s.wins + s.losses;
+    const winrate = ((s.wins / total) * 100).toFixed(0);
+    const pnl = s.totalPnl >= 0 ? "+" : "";
+    return `@${c} (${winrate}% | ${pnl}${s.totalPnl.toFixed(3)} SOL)`;
+  }).join("\n");
+}
+
 module.exports = {
   loadStats,
   recordTradeResult,
   isCallerTrusted,
   checkCallers,
   getFormattedStats,
+  getCallerReputation,
   MIN_TRADES_FOR_FILTER,
   MIN_WINRATE,
 };

@@ -94,6 +94,9 @@ async function notifyThresholdReached(tokenAddress, callers) {
 
 async function notifyBuy(trade) {
   const name = await getTokenName(trade.tokenAddress);
+  const { getCallerReputation } = require("./callerStats");
+  const callerRep = trade.callers ? getCallerReputation(trade.callers) : "";
+  const mcapLine = trade.buyMcap ? `├ MCap: <b>$${(trade.buyMcap / 1000).toFixed(0)}K</b>\n` : "";
   if (trade.status === "success") {
     await sendMessage(
       `━━━━━━━━━━━━━━━━━━━━━\n` +
@@ -103,9 +106,11 @@ async function notifyBuy(trade) {
       `├ Token: <b>${name}</b>\n` +
       `├ CA: <code>${trade.tokenAddress}</code>\n` +
       `├ Amount: <b>${trade.amount} SOL</b>\n` +
+      mcapLine +
       `├ Trigger: ${trade.trigger}\n` +
       `├ Price Impact: ${trade.priceImpact}%\n` +
       `└ Status: <b>FILLED</b> ✓\n\n` +
+      (callerRep ? `📊 <b>Caller Stats:</b>\n${callerRep}\n\n` : "") +
       `🔒 Take Profit: x2 (sell 100%)\n` +
       `📡 Monitoring position...\n\n` +
       `<a href="https://solscan.io/tx/${trade.txId}">📝 View TX</a> · <a href="https://dexscreener.com/solana/${trade.tokenAddress}">📊 Chart</a>`

@@ -149,6 +149,7 @@ async function executeBuy(tokenAddress, trigger, callers) {
     buyMcap: mcapCheck.marketCap || null,
     buyPriceUsd: dex?.priceUsd || null,
     buyLiquidityUsd: dex?.liquidity || null,
+    callers: callers || [],
   };
 
   trades.push(trade);
