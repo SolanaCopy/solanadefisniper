@@ -15,6 +15,7 @@ async function getAllTokenAccounts() {
 const { executeSell, getTokenValueInSol } = require("./jupiter");
 const notifier = require("./notifier");
 const { recordTradeResult } = require("./callerStats");
+const storage = require("./storage");
 
 // Active positions: tokenMint -> position data
 const positions = new Map();
@@ -96,13 +97,20 @@ async function sellPosition(tokenMint, position, currentBalance, reason) {
 
   const sellData = {
     tokenMint,
+    tokenName: position.tokenName,
     reason,
     multiplier: position.multiplier,
     soldPercentage: pct,
+    buyAmountSol: position.buyAmountSol,
     solReceived: result.solReceived,
     pnl,
     txId: result.txId,
+    callers: position.callers || [],
+    timestamp: Date.now(),
   };
+
+  // Save sell to disk
+  storage.saveSell(sellData);
 
   if (io) {
     io.emit("sell", sellData);

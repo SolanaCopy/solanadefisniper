@@ -50,6 +50,20 @@ function saveCalls(calls) {
   saveJSON(CALLS_FILE, calls);
 }
 
+// ──────────── Sells ────────────
+
+const SELLS_FILE = path.join(DATA_DIR, "sells.json");
+
+function loadSells() {
+  return loadJSON(SELLS_FILE);
+}
+
+function saveSell(sell) {
+  const sells = loadSells();
+  sells.push(sell);
+  saveJSON(SELLS_FILE, sells);
+}
+
 // ──────────── Bought tokens (duplicate protection) ────────────
 
 function loadBoughtTokens() {
@@ -74,6 +88,8 @@ module.exports = {
   saveTrades,
   loadCalls,
   saveCalls,
+  loadSells,
+  saveSell,
   loadBoughtTokens,
   saveBoughtToken,
   hasAlreadyBought,
