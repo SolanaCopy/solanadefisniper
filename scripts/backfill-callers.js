@@ -12,20 +12,32 @@ const STATS_FILE = path.join(DATA_DIR, "caller_stats.json");
 
 const RPC = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
+// Cache decimals to reduce RPC calls
+const decimalsCache = new Map();
+
 async function getDecimals(mint) {
-  const res = await fetch(RPC, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      jsonrpc: "2.0", id: 1,
-      method: "getAccountInfo",
-      params: [mint, { encoding: "jsonParsed" }],
-    }),
-  });
-  const data = await res.json();
-  if (data.result && data.result.value) {
-    return data.result.value.data.parsed.info.decimals;
+  if (decimalsCache.has(mint)) return decimalsCache.get(mint);
+  try {
+    const res = await fetch(RPC, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0", id: 1,
+        method: "getAccountInfo",
+        params: [mint, { encoding: "jsonParsed" }],
+      }),
+    });
+    const data = await res.json();
+    if (data.result && data.result.value) {
+      const dec = data.result.value.data.parsed.info.decimals;
+      decimalsCache.set(mint, dec);
+      return dec;
+    }
+  } catch (err) {
+    console.log(`[Backfill] RPC error for ${mint.slice(0, 8)}...: ${err.message}`);
   }
+  // Fallback: pump.fun tokens use 6, others assume 6 too
+  decimalsCache.set(mint, 6);
   return 6;
 }
 
@@ -77,9 +89,14 @@ async function run() {
     let decimals, dex;
     try {
       decimals = await getDecimals(trade.tokenAddress);
+    } catch (e) {
+      console.log(`#${trade.id} decimals error: ${e.message}, using 6`);
+      decimals = 6;
+    }
+    try {
       dex = await getDexData(trade.tokenAddress);
     } catch (e) {
-      console.log(`#${trade.id} ERROR: ${e.message}`);
+      console.log(`#${trade.id} DEX error: ${e.message}`);
       continue;
     }
 
@@ -89,6 +106,10 @@ async function run() {
     }
 
     const output = trade.output || trade.outputAmount;
+    if (!output) {
+      console.log(`#${trade.id} — no output amount, skipping`);
+      continue;
+    }
     const tokensReceived = Number(BigInt(output)) / Math.pow(10, decimals);
     const buyPricePerToken = trade.amount / tokensReceived;
     const multiplier = dex.priceNative / buyPricePerToken;
