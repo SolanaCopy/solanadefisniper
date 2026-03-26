@@ -130,15 +130,6 @@ async function executeBuy(tokenAddress, trigger) {
   const mcapCheck = await checkMarketCap(tokenAddress);
   if (!mcapCheck.allowed) {
     console.log(`[Bot] Skipping ${tokenAddress} — ${mcapCheck.reason}`);
-    await notifier.sendMessage(
-      `━━━━━━━━━━━━━━━━━━━━━\n` +
-      `⚠️ <b>MCAP TOO HIGH</b>\n` +
-      `━━━━━━━━━━━━━━━━━━━━━\n\n` +
-      `Token: <code>${tokenAddress}</code>\n` +
-      `Market Cap: <b>$${(mcapCheck.marketCap / 1000).toFixed(0)}K</b>\n` +
-      `Max allowed: $${MAX_MCAP / 1000}K\n\n` +
-      `❌ Buy skipped`
-    );
     return { status: "skipped", reason: mcapCheck.reason };
   }
 
