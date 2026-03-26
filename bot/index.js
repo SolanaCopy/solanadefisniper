@@ -224,6 +224,19 @@ async function main() {
     console.warn(`[Bot] Wallet warning: ${err.message}`);
   }
 
+  // Backfill caller stats if empty (first run after update)
+  try {
+    const { loadStats } = require("./callerStats");
+    const stats = loadStats();
+    if (Object.keys(stats).length === 0 && trades.filter((t) => t.status === "success").length > 0) {
+      console.log("[Bot] Caller stats empty, running backfill...");
+      const backfill = require("../scripts/backfill-callers");
+      await backfill();
+    }
+  } catch (err) {
+    console.log(`[Bot] Caller backfill skipped: ${err.message}`);
+  }
+
   // Restore positions from wallet (tokens bought before restart)
   await restorePositions(storage);
 
