@@ -57,18 +57,34 @@ async function sendSwapTransaction(quote) {
   transaction.sign([wallet]);
 
   const txId = await connection.sendRawTransaction(transaction.serialize(), {
-    skipPreflight: true,
-    maxRetries: 3,
+    skipPreflight: false,
+    maxRetries: 5,
   });
 
   console.log(`[Jupiter] Transaction sent: ${txId}`);
 
-  const confirmation = await connection.confirmTransaction(txId, "confirmed");
-  if (confirmation.value.err) {
-    throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+  // Wait for confirmation with timeout
+  const startTime = Date.now();
+  const TIMEOUT = 60000; // 60 seconds
+
+  while (Date.now() - startTime < TIMEOUT) {
+    const status = await connection.getSignatureStatuses([txId]);
+    const result = status.value[0];
+
+    if (result) {
+      if (result.err) {
+        throw new Error(`Transaction failed on-chain: ${JSON.stringify(result.err)}`);
+      }
+      if (result.confirmationStatus === "confirmed" || result.confirmationStatus === "finalized") {
+        console.log(`[Jupiter] Transaction confirmed: ${result.confirmationStatus}`);
+        return txId;
+      }
+    }
+
+    await new Promise((r) => setTimeout(r, 2000));
   }
 
-  return txId;
+  throw new Error(`Transaction not confirmed after ${TIMEOUT / 1000}s — likely dropped: ${txId}`);
 }
 
 /**
